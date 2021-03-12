@@ -7,10 +7,126 @@
         </style>
     </head>
     <body>
-        <script type="text/javascript" src="./three.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r126/three.min.js" integrity="sha512-n8IpKWzDnBOcBhRlHirMZOUvEq2bLRMuJGjuVqbzUJwtTsgwOgK5aS0c1JA647XWYfqvXve8k3PtZdzpipFjgg==" crossorigin="anonymous"></script>
         <script type="text/javascript" src="./OrbitControls.js"></script>
-
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js" integrity="sha512-lIKG1kC5TMb1Zx32vdz1n31YJMZRknVY20U9MJ28hD3y2c0OKN0Ce5NhJji78v8zX5UOSsm+MTBOcJt7yMBnSg==" crossorigin="anonymous"></script>
         <script>
+        var tweens = [];
+        var globalMouse = new THREE.Vector2()
+
+
+        function animateVector3(vectorToAnimate, target, options){
+            options = options || {};
+            // get targets from options or set to defaults
+            var to = target || THREE.Vector3(),
+                easing = options.easing || TWEEN.Easing.Quadratic.In,
+                duration = options.duration || 2000;
+            // create the tween
+            var tweenVector3 = new TWEEN.Tween(vectorToAnimate)
+                .to({ x: to.x, y: to.y, z: to.z, }, duration)
+                .easing(easing)
+                .onUpdate(function(d) {
+                    if(options.update){ 
+                        options.update(d);
+                    }
+                })
+                .onComplete(function(){
+                if(options.callback) options.callback();
+                });
+            // start the tween
+            tweenVector3.start();
+            // return the tween in case we want to manipulate it later on
+            return tweenVector3;
+        }
+
+        const dent = function ( origin, direction, radius, depth, mesh, face, color, wireframe ) 
+            {
+                tweens = []
+                var M = new THREE.Matrix4().getInverse( mesh.matrixWorld );
+                var origin = origin.applyMatrix4( M ) ;
+
+                var normal = new THREE.Vector3(); normal.copy( direction );
+                normal.multiplyScalar( -radius*( 1-depth ) ); 
+
+                var centerSphere = origin
+                var Sphere = new THREE.Sphere( centerSphere, radius );
+                var position = mesh.geometry.attributes.position
+                
+            for (var i=0; i< position.count; i++)
+                {       
+                    var positionVector = new THREE.Vector3().fromBufferAttribute(position, i)
+                    if ( centerSphere.distanceTo( positionVector ) < radius )
+                        {
+                
+                            var Ray = new THREE.Ray( positionVector, direction );
+                            var result = new THREE.Vector3()
+                            var punct = Ray.intersectSphere( Sphere, result );          
+                            // positionVector = punct;
+
+                            mesh.geometry.attributes.position.setXYZ(i, punct.x, punct.y, punct.z)
+                            
+                            // tweens.push(animateVector3(positionVector, punct, {
+                            //     duration: 500, 
+    
+                            //     easing : TWEEN.Easing.Quintic.InOut,
+                                
+                            //     update: function(d) {
+                            //         mesh.geometry.verticesNeedUpdate = true;
+                            //         mesh.geometry.elementsNeedUpdate = true;
+                            //         mesh.geometry.groupsNeedUpdate = true;
+                            //     },
+                                
+                            //     callback : function(){
+                            //         console.log("Completed");
+                            //     }
+                            // }))
+                        }           
+                }
+                position = wireframe.geometry.attributes.position
+                for (var i=0; i< position.count; i++)
+                {       
+                    var positionVector = new THREE.Vector3().fromBufferAttribute(position, i)
+                    if ( centerSphere.distanceTo( positionVector ) < radius )
+                        {
+                
+                            var Ray = new THREE.Ray( positionVector, direction );
+                            var result = new THREE.Vector3()
+                            var punct = Ray.intersectSphere( Sphere, result );          
+                            // positionVector = punct;
+
+                            wireframe.geometry.attributes.position.setXYZ(i, punct.x, punct.y, punct.z)
+                            
+                            // tweens.push(animateVector3(positionVector, punct, {
+                            //     duration: 500, 
+    
+                            //     easing : TWEEN.Easing.Quintic.InOut,
+                                
+                            //     update: function(d) {
+                            //         mesh.geometry.verticesNeedUpdate = true;
+                            //         mesh.geometry.elementsNeedUpdate = true;
+                            //         mesh.geometry.groupsNeedUpdate = true;
+                            //     },
+                                
+                            //     callback : function(){
+                            //         console.log("Completed");
+                            //     }
+                            // }))
+                        }           
+                }
+                mesh.geometry.colorsNeedUpdate = true;
+                mesh.geometry.computeFaceNormals();
+                mesh.geometry.computeVertexNormals();
+                mesh.geometry.verticesNeedUpdate = true;
+                mesh.geometry.elementsNeedUpdate = true;
+                mesh.geometry.groupsNeedUpdate = true;
+                mesh.geometry.normalsNeedUpdate = true; 
+                mesh.geometry.attributes.position.needsUpdate = true;
+                wireframe.geometry.attributes.position.needsUpdate = true;
+            }
+
+
+
+
 
             var scene = new THREE.Scene();
             var camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, 10, 1000 );
@@ -19,69 +135,93 @@
             var renderer = new THREE.WebGLRenderer( { antialias: true } );
             renderer.setPixelRatio( window.devicePixelRatio );
             renderer.setSize( window.innerWidth, window.innerHeight );
-            renderer.setClearColor( 0xCC7FE0, 1 );
+            renderer.setClearColor( 0x000000, 1 );
 
             document.body.appendChild( renderer.domElement );
 
+
+
             var orbit = new THREE.OrbitControls( camera, renderer.domElement );
             orbit.enableZoom = false;
-
+            orbit.enablePan = false;
+            orbit.enableRotate = false;
+            orbit.minDistance = 30;
+            orbit.maxDistance = 30;
 
             var ambientLight  = new THREE.AmbientLight( '#FFE7FF' ),
                 hemiLight     = new THREE.HemisphereLight('#FFE7FF', '#FFE7FF', 0.5 ),
                 light         = new THREE.PointLight( '#FFE7FF', 1, 100 );
 
             hemiLight.position.set( 0, 0, 10 );
-            light.position.set( 0, 0, 0 );
+            light.position.set( 10, 10, 10 );
 
-            scene.add( hemiLight );
+            // scene.add( hemiLight );
             scene.add( light );
+            // scene.add(ambientLight)
 
-            var group = new THREE.Group();
+            // const loader = new THREE.FontLoader();
 
-            var geometry = new THREE.SphereGeometry( 3, 32, 32 );
-            var material = new THREE.MeshBasicMaterial( { color: 0xffffff, opacity:0.7, transparent:true } );
-            var sphere_one = new THREE.Mesh( geometry, material );
-            sphere_one.position.x = 0;
-            sphere_one.position.y = 0;
-            sphere_one.position.z = 0;
-            group.add( sphere_one );
+            // loader.load( 'font.typeface.json', function ( font ) {
+
+            //     const geometry = new THREE.TextGeometry( 'Lilekov-studio', {
+            //         font: font,
+            //         size:50,
+            //         height: 5,
+            //         curveSegments: 50,
+            //         // bevelEnabled: true,
+            //         // bevelThickness:2,
+            //         // bevelSize: 1,
+            //         // bevelOffset: 0,
+            //         // bevelSegments: 5
+            //     } );
+                var geometry = createSphereGeometry()
+            var material = new THREE.MeshBasicMaterial( { 
+                color: 0xffffff,
+                // color: 0x772af5, 
+                opacity:0.7, 
+                transparent:true, 
+                wireframe: true, 
+                // flatShading: true,
+                morphTargets: true
+            
+            } );
+
+            // const geometry = new THREE.SphereGeometry( 15, 40, 20 );
+            // const material = new THREE.MeshBasicMaterial( {color: 0xffffff, wireframe: true } );
+            const sphere_one = new THREE.Mesh( geometry, material );
+
+            // var sphere_one = new THREE.Mesh( geometry, material );
 
 
-            var geometry = new THREE.SphereGeometry( 2, 32, 32 );
-            var material = new THREE.MeshPhongMaterial( { color: 0xE74C3C } );
-            var sphere_two = new THREE.Mesh( geometry, material );
-            sphere_two.position.x = 7*Math.cos(30);
-            sphere_two.position.y = 7*Math.sin(30);
-            sphere_two.position.z = 0;
-            group.add( sphere_two );
+            const lines = new THREE.EdgesGeometry(geometry);
+            const mat = new THREE.LineBasicMaterial({color: 0xffffff, linewidth: 2})
+            const wireframe = new THREE.LineSegments(lines, mat);
+            // scene.add(wireframe);
 
+            sphere_one.updateMorphTargets();
+            scene.add( sphere_one );
+            var controller = {x: 0}
+            var animation = new TWEEN.Tween(controller)
+            .to({x: 1}, 1000)
+            .easing(TWEEN.Easing.Quadratic.InOut)
+            .onUpdate((d) => {
+                sphere_one.morphTargetInfluences[0] = d.x
+                sphere_one.morphTargetInfluences[1] = d.x < 0.5? d.x: 1-d.x 
+            })
 
-            var geometry = new THREE.SphereGeometry( 2, 32, 32 );
-            var material = new THREE.MeshLambertMaterial( { color: 0xFFE7FF } );
-            var sphere_three = new THREE.Mesh( geometry, material );
-            sphere_three.position.x = 9*Math.cos(45);
-            sphere_three.position.y = 9*Math.sin(45);
-            sphere_three.position.z = 0;
-            group.add( sphere_three );
+            var controller2 = {x: 1}
+            var animation2 = new TWEEN.Tween(controller2)
+            .to({x: 0}, 1000)
+            .easing(TWEEN.Easing.Quadratic.InOut)
+            .onUpdate((d) => {
+                sphere_one.morphTargetInfluences[0] = d.x
+                sphere_one.morphTargetInfluences[1] = d.x < 0.5? d.x: 1-d.x 
+                sphere_one.morphTargetInfluences[2] = 1-d.x
+            })
+            .delay(2000)
 
-            var geometry = new THREE.SphereGeometry( 2, 32, 32 );
-            var material = new THREE.MeshToonMaterial( { color: 0x3D98DB, opacity:0.8, transparent:true } );
-            var sphere_four = new THREE.Mesh( geometry, material );
-            sphere_four.position.x = 11*Math.cos(60);
-            sphere_four.position.y = 11*Math.sin(60);
-            sphere_four.position.z = 0;
-            group.add( sphere_four );
-
-            var geometry = new THREE.SphereGeometry( 2, 32, 32 );
-            var material = new THREE.MeshToonMaterial( { color: 0x2980B9, opacity:0.1, transparent:true, wireframe:true } );
-            var sphere_five = new THREE.Mesh( geometry, material );
-            sphere_five.position.x = 13*Math.cos(75);
-            sphere_five.position.y = 13*Math.sin(75);
-            sphere_five.position.z = 0;
-            group.add( sphere_five );
-
-            scene.add( group );
+            animation.chain(animation2)
+            animation.start()
 
 
             var prevFog = true;
@@ -89,12 +229,14 @@
             var render = function () {
 
                 requestAnimationFrame( render );
+                orbit.enableZoom=false;
+                animation.update()
+                animation2.update()
                 orbit.update();
-                group.rotation.x += 0.03;
-                group.rotation.y += 0.02;
-                group.rotation.z += 0.01;
-               
-
+                tweens.forEach(tween => {
+                    tween.update()
+                })
+                // sphere_one.rotation.x += 0.002;
                 renderer.render( scene, camera );
 
             };
@@ -108,7 +250,209 @@
 
 
             render();
+            function handleclick (event) {
+            var mouse = new THREE.Vector2();
 
+            mouse.x = ( (event.clientX - renderer.domElement.offsetLeft) / renderer.domElement.width ) * 2 - 1;
+            mouse.y = - ( (event.clientY - renderer.domElement.offsetTop) / renderer.domElement.height ) * 2 + 1;
+
+            var raycaster = new THREE.Raycaster
+            raycaster.setFromCamera(mouse, camera)
+
+            var intersects = raycaster.intersectObjects([sphere_one])
+            
+            if ( intersects.length > 0 ) 
+            {
+                var face = intersects[ 0 ].face;
+                var direction = new THREE.Vector3(); direction.copy( face.normal );
+                    direction.multiplyScalar( -1 ); 
+                const color = new THREE.Color();
+                // sphere_one.setColorAt( intersects[0].instanceId, color.setHex( Math.random() * 0xffffff ) );
+                color.setHex( Math.random() * 0xff0000)
+                // sphere_one.instanceColor.needsUpdate = true;
+
+                dent(intersects[ 0 ].point,direction, 3,0.5, sphere_one, face, color, wireframe)
+            }
+
+        }
+
+        function handleMouseMove(event) {
+            globalMouse.x = ( (event.clientX - renderer.domElement.offsetLeft) / renderer.domElement.width ) * 2 - 1;
+            globalMouse.y = - ( (event.clientY - renderer.domElement.offsetTop) / renderer.domElement.height ) * 2 + 1;
+
+            var influence = Math.round(event.clientX/window.innerWidth*10)/10
+            // console.log(influence)
+            sphere_one.morphTargetInfluences[0] = influence
+            sphere_one.morphTargetInfluences[1] = influence < 0.5? influence: 1-influence 
+            // console.log(sphere_one)
+
+            var raycaster = new THREE.Raycaster
+            raycaster.setFromCamera(globalMouse, camera)
+
+            var intersects = raycaster.intersectObjects([sphere_one])
+            if ( intersects.count > 0 ) 
+            {
+                var center = intersects[0].point
+                var trailGeometry = new THREE.SphereGeometry(0.1, 20, 20)
+                var trailMaterial = new THREE.MeshPhongMaterial({color: 0xff0000})
+                var trailSphere = new THREE.Mesh(trailGeometry, trailMaterial)
+                trailSphere.position.copy(center)
+                scene.add(trailSphere)
+            }
+
+        }
+
+        function createSphereGeometry() {
+                
+                // const length = 12, width = 8;
+
+                //     const shape = new THREE.Shape();
+                //     shape.moveTo( 0,0 );
+                //     shape.lineTo( 0, width );
+                //     shape.lineTo( length, width );
+                //     shape.lineTo( length, 0 );
+                //     shape.lineTo( 0, 0 );
+
+                //     const extrudeSettings = {
+                //         steps: 20,
+                //         depth: 20,
+                //         bevelEnabled: true,
+                //         bevelThickness: 2,
+                //         bevelSize: 2,
+                //         bevelOffset: 0,
+                //         bevelSegments: 5
+                //     };
+
+                //     const CylinderGeometry = new THREE.ExtrudeGeometry( shape, extrudeSettings );
+
+                const geometry = new THREE.SphereGeometry(15, 30, 30)
+                const BoxGeometry = new THREE.BoxGeometry(15,15,15, 5,5,5)
+                const CylinderGeometry = new THREE.CylinderGeometry(0,15, 20, 30, 2)
+                // const BoxGeometry = new THREE.TorusGeometry(15, 3,16,10)
+
+
+                geometry.morphAttributes.position = [];
+
+                // the original positions of the cube's vertices
+                const positionAttribute = geometry.attributes.position;
+                const cubePositionAttribute = BoxGeometry.attributes.position;
+                const cylinderPositionAttribute = CylinderGeometry.attributes.position;
+
+                // for the first morph target we'll move the cube's vertices onto the surface of a sphere
+                const cubePositions = [];
+
+                // for the second morph target, we'll twist the cubes vertices
+                const twistPositions = [];
+                const direction = new THREE.Vector3( 1, 0, 0 );
+                const vertex = new THREE.Vector3();
+
+
+                var pair_dist = [];
+                var pair_dist_cylinder = [];
+
+                var sortDist = function(a, b) {
+                    if (a[2] < b[2]) return -1;
+                    if (a[2] > b[2]) return 1;
+                    return 0;
+                };
+                var vertices = [];
+                var selected_ind = [];
+                var vertices_cylinder = [];
+                var selected_ind_cylinder = [];
+
+
+                for ( let i = 0; i < positionAttribute.count; i ++ ) {
+
+                    const x = positionAttribute.getX( i );
+                    const y = positionAttribute.getY( i );
+                    const z = positionAttribute.getZ( i );
+
+                    for (var j = 0; j <  cubePositionAttribute.count; j++) {
+                            var sphereVector = new THREE.Vector3().fromBufferAttribute(positionAttribute, i)
+                            var cubeVector = new THREE.Vector3().fromBufferAttribute(cubePositionAttribute, j)
+                            
+                            pair_dist.push([i, j,  cubeVector.distanceTo(sphereVector)])
+                    }
+
+                    for (var j = 0; j <  cylinderPositionAttribute.count; j++) {
+                            var sphereVector = new THREE.Vector3().fromBufferAttribute(positionAttribute, i)
+                            var cylinderVector = new THREE.Vector3().fromBufferAttribute(cylinderPositionAttribute, j)
+                            
+                            pair_dist_cylinder.push([i, j,  cylinderVector.distanceTo(sphereVector)])
+                    }
+
+
+                    // spherePositions.push(
+
+                    //     x * Math.sqrt( 1 - ( y * y / 2 ) - ( z * z / 2 ) + ( y * y * z * z / 3 ) ),
+                    //     y * Math.sqrt( 1 - ( z * z / 2 ) - ( x * x / 2 ) + ( z * z * x * x / 3 ) ),
+                    //     z * Math.sqrt( 1 - ( x * x / 2 ) - ( y * y / 2 ) + ( x * x * y * y / 3 ) )
+
+                    // );
+
+                    // stretch along the x-axis so we can see the twist better
+                    vertex.set( x * 1.2, y*1.5, z*1.5 );
+
+                    vertex.applyAxisAngle( direction, Math.PI * x / 15 ).toArray( twistPositions, twistPositions.length );
+
+                }
+                    
+                    var pair_dist_sort = pair_dist.sort(sortDist)
+                    var pair_dist_sort_cylinder = pair_dist_cylinder.sort(sortDist)
+
+                    for (var v = 0; v < positionAttribute.count; v++ ) {
+                        for ( var i = 0; i < pair_dist_sort.length; i++ ) {
+                        if ( pair_dist_sort[i][0] == v ) {
+                            var i_target = pair_dist_sort[i][1];
+                            new THREE.Vector3().fromBufferAttribute(cubePositionAttribute, i_target).toArray(vertices, vertices.length)
+                            
+                            selected_ind.push(i_target);
+                            break;
+                        }
+                        }
+
+                        for ( var i = 0; i < pair_dist_sort_cylinder.length; i++ ) {
+                        if ( pair_dist_sort_cylinder[i][0] == v ) {
+                            var i_target = pair_dist_sort_cylinder[i][1];
+                            new THREE.Vector3().fromBufferAttribute(cylinderPositionAttribute, i_target).toArray(vertices_cylinder, vertices_cylinder.length)
+                            
+                            selected_ind_cylinder.push(i_target);
+                            break;
+                        }
+                        }
+                    }
+                    // console.log(pair_dist_sort, vertices)
+                    // for (var i = 0; i < cubePositionAttribute.count; i++ ) {
+                    //     if (selected_ind.indexOf(i) == -1) {
+                            
+                    //     for ( var j = 0; j < pair_dist_sort.length; j++ ) {
+                    //         if ( pair_dist_sort[j][1] == i ) {
+                    //         new THREE.Vector3().fromBufferAttribute(cubePositionAttribute, i).toArray(vertices, pair_dist_sort[j][0])
+                    //         // vertices[pair_dist_sort[j][0]].copy(new THREE.Vector3().fromBufferAttribute(cubePositionAttribute, i));
+                    //         break;
+                    //         }
+                    //     }
+                    //     }
+                    // }
+                // add the spherical positions as the first morph target
+                geometry.morphAttributes.position[ 0 ] = new THREE.Float32BufferAttribute( vertices, 3 );
+
+                // add the twisted positions as the second morph target
+                geometry.morphAttributes.position[ 1 ] = new THREE.Float32BufferAttribute( twistPositions, 3 );
+
+                geometry.morphAttributes.position[ 2 ] = new THREE.Float32BufferAttribute( vertices_cylinder, 3 );
+
+                return geometry;
+
+        }
+
+        // renderer.domElement.addEventListener('mousemove', handleMouseMove)
+        renderer.domElement.addEventListener('click', handleclick)
+            // } );
+
+            
+
+        
         </script>
     </body>
 </html>
